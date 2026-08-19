@@ -305,6 +305,39 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+
+<!-- RUNS 9-10: SFT -->
+<section id="sft">
+  <span class="kicker rv">Runs 9–10</span>
+  <h2 class="rv">The short-digit wall was a formatting bug</h2>
+  <p class="sub rv">Run 9 narrowed the corpus to 1–4 digits at 100 tpp. It scored 60.15% on the original 2–4 digit eval — still below run 3's 78.70%, with 2-digit answers at <b style="color:#fff">1%</b>. The digits were right; the model would not stop. <b style="color:#fff">40 seconds of SFT</b> — 0.114% of the pretraining budget — fixed it.</p>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Answer length</th><th>Pre-SFT</th><th>Post-SFT</th></tr></thead>
+      <tbody>
+        <tr><td>1 digit</td><td><span class="pill bad">0%</span></td><td><span class="pill good">97%</span></td></tr>
+        <tr><td>2 digit</td><td><span class="pill bad">1%</span></td><td><span class="pill good">94%</span></td></tr>
+        <tr><td>3 digit</td><td>33%</td><td><span class="pill good">99%</span></td></tr>
+        <tr><td>4 digit</td><td>84%</td><td><span class="pill good">100%</span></td></tr>
+        <tr><td><b>overall (2–4d eval)</b></td><td>60.15%</td><td><span class="pill good"><b>99.05%</b></span></td></tr>
+        <tr><td><b>5–6 digit (unseen)</b></td><td><span class="pill bad">0.00%</span></td><td><span class="pill bad">0.00%</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">Greedy decode, same evaluation as every earlier run. <code>18+15=</code> → <code>3333</code> became <code>33</code>; <code>42-25=</code> → <code>7111</code> became <code>17</code>.</p>
+</section>
+
+<!-- FINDINGS 16-18 -->
+<section id="find1618">
+  <span class="kicker rv">What SFT showed</span>
+  <h2 class="rv">Three final findings</h2>
+  <div class="finds">
+    <div class="find glass rv"><div class="num">16</div><div class="ico">🛑</div><h3>Packed pretraining never teaches stopping</h3><p>Loss over a packed stream makes <code>&lt;eos&gt;</code> one token among millions, never the target of a distinct example. Masking the prompt to <code>-100</code> and supervising only the completion — the recipe from <code>llm-modern-arch-experiment</code>, whose SFT exists for this exact reason — took the 2–4 digit eval from <b style="color:#fff">60.15% to 99.05%</b> in 1000 updates. That finally beats run 3's 78.70%, by 20 points.</p></div>
+    <div class="find glass rv"><div class="num">17</div><div class="ico">🔀</div><h3>SFT also collapsed the reversed/forward ambiguity</h3><p>Strict (forward-order-only) accuracy went <b style="color:#fff">21.55% → 99.05%</b>, exactly matching lenient. Every earlier run leaned on a scorer that accepted either order, because 50/50 reversed training left the model emitting a mix. After SFT the two metrics are identical: it emits forward order every time. <code>7+5=</code> → <code>21</code> became <code>12</code>.</p></div>
+    <div class="find glass rv"><div class="num">18</div><div class="ico">🧱</div><h3>SFT fixes format, not capability</h3><p>5–6 digit stayed at <b style="color:#fff">exactly 0.00%</b> before and after. Supervising the completion teaches when to stop and which order to emit; it cannot teach arithmetic the model never learned. That cleanly separates the two walls: the short-side one was a formatting artifact and is gone, the long-side one is a real capacity limit and is untouched.</p></div>
+  </div>
+</section>
+
 <!-- LOSS -->
 <section id="loss">
   <span class="kicker rv">Curves</span>

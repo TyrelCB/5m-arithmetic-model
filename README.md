@@ -20,10 +20,50 @@ Exact-match accuracy, greedy decode, answers accepted in forward or reversed ord
 | 2–9 digit | 12.8 | 0.00% | 29.85% | 47.05% | 34.65% | 0.00% |
 | 2–9 digit | 20 | 0.00% | 47.50% | 70.80% | 59.25% | 0.00% |
 | 2–9 digit | 100 | 0.00% | 34.85% | 70.20% | 80.85% | 0.00% |
-| **1–9 digit** | **20** | 11.03% | **61.90%** | **86.25%** | **81.85%** | 0.00% |
+| **1–9 digit** | **20** | 11.03% | 61.90% | **86.25%** | **81.85%** | 0.00% |
+| 1–4 digit | 100 | 97.06% | 60.15% | — | — | 0.00% |
+| **1–4 digit + SFT** | **100** | **100.00%** | **99.05%** | — | — | 0.00% |
 
-Best add/sub configuration is **1–9 digit at 20 tpp**
+Best model overall is **1–4 digit @ 100 tpp + SFT**
+(`checkpoints/run10_sft/sft_final.pt`) — 99.05% on the original 2–4 digit eval.
+Best model *without* SFT, and the widest digit range, is **1–9 digit at 20 tpp**
 (`checkpoints/run7_1d_20tpp/ckpt_final.pt`).
+
+### Runs 9–10: SFT fixes the short-digit wall
+
+Run 9 narrowed to 1–4 digits at 100 tpp and still scored only 60.15% on the original
+2–4 digit eval, with **2-digit answers at 1%**. The arithmetic was correct; the model
+would not stop (`18+15=` → `3333`). Pretraining on a packed stream makes `<eos>` one
+token among millions, never the target of a distinct example.
+
+`sft_stop.py` applies the recipe from `../llm-modern-arch-experiment/src/modern_lm/sft.py`
+— whose own docstring says its SFT exists because "packed pretraining text almost never
+teaches 'stop after answering'". Loss is masked to `-100` on the prompt so only the
+answer digits and terminal `<eos>` are supervised (36.9% of tokens). The SFT set is
+balanced by *answer length* (40k each at 1–5 digits) rather than mirroring pretraining's
+~80% four-digit skew, which is what caused the bug.
+
+| answer length | pre-SFT | post-SFT |
+|---|---|---|
+| 1 digit | 0% | 97% |
+| 2 digit | 1% | 94% |
+| 3 digit | 33% | 99% |
+| 4 digit | 84% | 100% |
+| **overall (2–4d eval)** | **60.15%** | **99.05%** |
+| 5–6 digit (unseen) | 0.00% | 0.00% |
+
+**Cost: 40 seconds, ~0.58M supervised tokens — 0.114% of the pretraining budget.**
+
+Two things worth noting beyond the headline:
+
+- **Strict accuracy went 21.55% → 99.05%**, exactly matching lenient. Every earlier run
+  leaned on a scorer accepting forward *or* reversed answers, because 50/50 reversed
+  training left the model emitting a mix. After SFT the two metrics coincide — it emits
+  forward order every time (`7+5=` → `21` became `12`). The scoring caveat below no
+  longer applies to the SFT model.
+- **SFT fixes format, not capability.** 5–6 digit is 0.00% before and after. Supervising
+  the completion teaches when to stop and which order to emit; it cannot teach arithmetic
+  the model never learned.
 
 ### Run 8: four operations
 
@@ -60,6 +100,9 @@ Findings:
 - **More tokens are not uniformly good.** 100 tpp beat 20 tpp on 5–6 digit
   (80.85% vs 59.25%) but lost ground on 2–4 digit (34.85% vs 47.50%). At 5.1M
   params the model reallocates capacity toward wherever the data mass sits.
+- **The short-side wall was a formatting bug, not a capability limit.** 40s of SFT with
+  prompt-masked loss took the 2–4 digit eval from 60.15% to 99.05%, finally beating run
+  3's 78.70% by 20 points. The long-side wall did not move at all.
 - **Two different walls.** Long side: cannot compute. Short side: computes
   perfectly and cannot stop — on 1-digit answers the first emitted digit is
   correct **91/91 = 100%**, but `<eos>` ranks 10th on average, so it runs on
