@@ -78,6 +78,29 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 11: SFT on the four-operation model
+
+The same recipe (55s, ~0.6M supervised tokens) applied to run 8's checkpoint. The SFT set
+is balanced by **(operation, answer length)** across 39 buckets, since mul/div answer
+ranges differ from add/sub.
+
+| operation | pre-SFT | post-SFT |
+|---|---|---|
+| div | 60.53% | **99.93%** |
+| add | 75.13% | **94.73%** |
+| sub | 83.20% | **93.53%** |
+| mul | 5.20% | **32.27%** |
+
+Strict equals lenient on all four afterwards. Division is 100% at every answer length
+1–9 digits — it was almost entirely a formatting failure.
+
+**Multiplication's diagnosis changed.** Pre-SFT it got the length right 54% and the first
+digit 12%, which read as pure computation failure; post-SFT those are **99.0% and 95.7%**,
+and small products are perfect (`9x9=81`, `12x11=132`). What remains is a size gradient —
+2-digit answers 100%, 4-digit 70%, 7-digit 36%, 11-digit 2% — failing in the middle digits
+of long products (`345x67=` → `22415`, gold `23115`). That part is real capacity and
+output supervision does not touch it.
+
 **Multiplication is not learnable at this scale, and not because of length.** It gets the
 answer length right 54% of the time and the first digit right only 12% — it knows how big
 the answer should be and cannot compute it (`9x9` → `1011`). Addition is digit-local with

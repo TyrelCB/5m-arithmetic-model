@@ -338,6 +338,36 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+
+<!-- RUN 11: SFT ON FOUR OPS -->
+<section id="sftops">
+  <span class="kicker rv">Run 11</span>
+  <h2 class="rv">SFT on the four-operation model</h2>
+  <p class="sub rv">The same 55-second recipe applied to run 8's mul/div checkpoint. Division was almost entirely a formatting failure. Multiplication was <b style="color:#fff">partly</b> one — enough to move it 6×, not enough to solve it.</p>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Operation</th><th>Pre-SFT</th><th>Post-SFT</th><th>Change</th></tr></thead>
+      <tbody>
+        <tr><td><b>div</b></td><td>60.53%</td><td><span class="pill good">99.93%</span></td><td>+39.4</td></tr>
+        <tr><td><b>add</b></td><td>75.13%</td><td><span class="pill good">94.73%</span></td><td>+19.6</td></tr>
+        <tr><td><b>sub</b></td><td>83.20%</td><td><span class="pill good">93.53%</span></td><td>+10.3</td></tr>
+        <tr><td><b>mul</b></td><td><span class="pill bad">5.20%</span></td><td>32.27%</td><td>+27.1</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">Strict scoring now equals lenient on all four operations — the forward/reversed ambiguity is gone. Division is 100% at every answer length from 1 to 9 digits.</p>
+</section>
+
+<!-- FINDINGS 19-20 -->
+<section id="find1920">
+  <span class="kicker rv">What run 11 showed</span>
+  <h2 class="rv">Two corrections</h2>
+  <div class="finds">
+    <div class="find glass rv"><div class="num">19</div><div class="ico">🔁</div><h3>Multiplication's failure was partly formatting after all</h3><p>The pre-SFT diagnosis — length right 54%, first digit right 12% — read as a pure computation failure. SFT moved those to <b style="color:#fff">99.0% and 95.7%</b>. Small products are now perfect (<code>9x9=81</code>, <code>12x11=132</code>, 100% at 1–2 digit answers). The prediction that SFT would leave mul near 5% was wrong.</p></div>
+    <div class="find glass rv"><div class="num">20</div><div class="ico">📉</div><h3>What remains is a clean size gradient</h3><p>Post-SFT multiplication by answer length: 2-digit <b style="color:#fff">100%</b>, 4-digit 70%, 7-digit 36%, 10-digit 15%, 11-digit <b style="color:#fff">2%</b>. It fails in the middle digits of long products (<code>345x67=</code> → <code>22415</code>, gold <code>23115</code>). That residual is genuine capacity for carrying partial products, and output supervision cannot touch it.</p></div>
+  </div>
+</section>
+
 <!-- LOSS -->
 <section id="loss">
   <span class="kicker rv">Curves</span>
