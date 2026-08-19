@@ -368,6 +368,38 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+
+<!-- RUNS 12-13 -->
+<section id="run1213">
+  <span class="kicker rv">Runs 12–13</span>
+  <h2 class="rv">Corpus diversity, not digit range</h2>
+  <p class="sub rv">Run 12 narrowed to 1–4 digits at 100 tpp, expecting shorter products to make multiplication learnable. It got <b style="color:#fff">worse</b> — 0.40%. Run 13 kept four operations but widened to 1–6 digits at 20 tpp, and beat every prior four-op run on <b style="color:#fff">all four operations</b>.</p>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Operation</th><th>Run 11 · 1–9d · 20tpp</th><th>Run 12 · 1–4d · 100tpp</th><th>Run 13 · 1–6d · 20tpp</th></tr></thead>
+      <tbody>
+        <tr><td><b>div</b></td><td>99.93%</td><td><span class="pill bad">68.27%</span></td><td><span class="pill good">100.00%</span></td></tr>
+        <tr><td><b>add</b></td><td>94.73%</td><td>92.60%</td><td><span class="pill good">97.80%</span></td></tr>
+        <tr><td><b>sub</b></td><td>93.53%</td><td>88.20%</td><td><span class="pill good">95.93%</span></td></tr>
+        <tr><td><b>mul</b></td><td>32.27%</td><td><span class="pill bad">0.40%</span></td><td><span class="pill good">42.00%</span></td></tr>
+        <tr><td>SFT held-out loss</td><td>0.2165</td><td>0.4065</td><td><span class="pill good">0.0953</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">Run 12 diverged at step 600 (train 1.36 / eval 1.71) and early-stopped at 4000 of 15600. Run 13 held train and eval within <b style="color:#fff">0.007</b> through step 3000 and ran to completion. Same architecture, same SFT recipe.</p>
+</section>
+
+<!-- FINDINGS 21-23 -->
+<section id="find2123">
+  <span class="kicker rv">What runs 12–13 showed</span>
+  <h2 class="rv">Three more findings</h2>
+  <div class="finds">
+    <div class="find glass rv"><div class="num">21</div><div class="ico">📚</div><h3>The binding constraint is corpus diversity</h3><p>The 1–4 digit four-op space is ~10⁸ problems; a 38M-line corpus exhausts it. Run 12 saturated at step 1600 of 15600 — <b style="color:#fff">~10 tpp effective, not 100</b> — then memorized. The 1–6 digit space is ~2×10¹², six orders larger, and the same recipe at a fifth of the nominal budget beat it everywhere. Budget only helps while there is novel content to spend it on.</p></div>
+    <div class="find glass rv"><div class="num">22</div><div class="ico">📐</div><h3>Multiplication degrades smoothly with product length</h3><p>Run 13 post-SFT by answer length: 4-digit <b style="color:#fff">79%</b>, 5-digit 77%, 6-digit 60%, 7-digit 41%, 8-digit <b style="color:#fff">8%</b>. A gradient, not a cliff — consistent with a capacity limit on carrying partial products. Run 12's apparent 0.40% collapse was an artifact: saturation forced its held-out set entirely into the 7–8 digit band where mul is weakest.</p></div>
+    <div class="find glass rv"><div class="num">23</div><div class="ico">🚪</div><h3>The first crack in the length wall</h3><p>Every run through 12 scored <b style="color:#fff">exactly 0.00%</b> outside its training range. Run 13 scores <b style="color:#fff">12.27%</b> on unseen 7–8 digit operands — 81% where the answer is 5 digits, 74% at 6 digits, 0% at 8. It does not extrapolate to longer <i>answers</i>, but it now handles longer <i>operands</i> when the answer stays in a familiar range.</p></div>
+  </div>
+</section>
+
 <!-- LOSS -->
 <section id="loss">
   <span class="kicker rv">Curves</span>

@@ -78,6 +78,36 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 13: four ops, 1–6 digits, 20 tpp + SFT — best four-op model
+
+| operation | run 11 (1–9d, 20tpp) | run 12 (1–4d, 100tpp) | **run 13 (1–6d, 20tpp)** |
+|---|---|---|---|
+| div | 99.93% | 68.27% | **100.00%** |
+| add | 94.73% | 92.60% | **97.80%** |
+| sub | 93.53% | 88.20% | **95.93%** |
+| mul | 32.27% | 0.40% | **42.00%** |
+| SFT held-out loss | 0.2165 | 0.4065 | **0.0953** |
+
+**Run 12 was a negative result that located the real constraint.** Narrowing to 1–4 digits
+to shorten products made multiplication *worse* (0.40%), because the 1–4 digit four-op
+space is only ~10⁸ problems and a 38M-line corpus exhausts it. The model saturated at
+step 1600 of 15600 — **~10 tpp effective, not 100** — then memorized: train loss plateaued
+at 1.31 while eval drifted 1.62 → 1.83 and never recovered.
+
+Run 13 kept four operations but widened to 1–6 digits (~2×10¹² problems) at 20 tpp. Train
+and eval tracked within **0.007** through step 3000 and it ran to completion. Same
+architecture, same SFT recipe, a fifth of the nominal budget — better on every operation.
+
+**Multiplication degrades smoothly with product length** rather than failing outright
+(post-SFT: 4-digit 79%, 5-digit 77%, 6-digit 60%, 7-digit 41%, 8-digit 8%), consistent
+with a capacity limit on carrying partial products. Run 12's 0.40% was an artifact:
+saturation forced its held-out set entirely into the 7–8 digit band where mul is weakest.
+
+**First partial length generalization in the study.** On never-seen 7–8 digit operands
+run 13 scores **12.27%** — 81% where the answer is 5 digits, 74% at 6, 0% at 8. Every run
+through 12 scored exactly 0.00% outside its training range. It does not extrapolate to
+longer *answers*, but it handles longer *operands* when the answer stays familiar.
+
 ### Run 11: SFT on the four-operation model
 
 The same recipe (55s, ~0.6M supervised tokens) applied to run 8's checkpoint. The SFT set
