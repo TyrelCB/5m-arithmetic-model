@@ -78,6 +78,51 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 17: 1–8 digits, 200 tpp, 9 multi-op templates
+
+| operation | symbolic | word form | run 16 |
+|---|---|---|---|
+| div | **100.00%** | 96.75% | 100.00% |
+| add | **99.17%** | 98.92% | 99.08% |
+| sub | **98.67%** | 98.17% | 98.83% |
+| **mul** | **40.25%** | 41.58% | 33.33% |
+| pow *(in-dist)* | 22.17% | 19.67% | 21.33% |
+| multi-op | **5.08%** | — | 16.25% |
+
+1.022B tokens in 2740s at 373,104 tok/s. SFT held-out 0.1632, best of the study.
+
+**Budget finally moved multiplication** — 33.33% → 40.25%, the first time more compute has
+shifted mul. The length curve extended: 86% at 6-digit answers, 71% at 7-digit, reaching
+11-digit answers at all.
+
+**Wider digits help operations and hurt composition.** Multi-op fell to 5.08%. Re-scored
+against run 16's *exact* answer-length profile it stays at 5.08%, so it is not an eval
+artifact; per-template scoring shows the drop is uniform (old `N*(N+N)-N` at 0.0%, same as
+the new shapes), so the four added templates are not the cause. At 1–8 digits the
+*intermediate* values inside compositional expressions grow, and each sub-result must be
+carried correctly.
+
+**Multiplication was rendered four ways, inconsistently.** `--mul-symbol` governed only
+single-op lines; `build_multi` hardcoded `*`. No line ever contained both `x` and `*`. On
+400 identical problems:
+
+| rendering | accuracy |
+|---|---|
+| `x` | 41.75% |
+| `times` | 41.75% |
+| `multiplied by` | 37.00% |
+| **`*`** | **22.00%** |
+
+The model inferred `*` means multiply from compositional context alone — far above chance
+— but 20 points worse than the form it saw standalone. **Generator now fixed**:
+`build_multi` honours `--mul-symbol`, verified 0 stray `*` in an 80k-line sample. All
+reported mul figures are `x`-only.
+
+**Pow needs an in-distribution measurement at this corpus size.** The 45M-line corpus
+contains **100% of pow problems below 9 digits** (all 10,674) and **0%** above, so a
+length-matched held-out pow set is impossible — the two conditions are mutually exclusive.
+Measured in-distribution and length-matched to training, labeled as recall.
+
 ### Run 16: word forms — `36 multiplied by 24 = 864`
 
 50% word-form operators, spaces kept, vocab 20 → 40 (19 letters + space). Same

@@ -494,6 +494,39 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+
+<!-- RUN 17: WIDE + 200 TPP -->
+<section id="run17">
+  <span class="kicker rv">Run 17</span>
+  <h2 class="rv">Wider digits, double the budget</h2>
+  <p class="sub rv">1–8 digits at <b style="color:#fff">200 tpp</b> (1.02B tokens), with multi-op expanded from 5 fixed shapes to <b style="color:#fff">9 templates</b> — parens on both sides, on the right operand, and <code>a*b+c*d</code> with no parens at all, where precedence must be inferred rather than read off brackets.</p>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Operation</th><th>Symbolic</th><th>Word form</th><th>Run 16</th></tr></thead>
+      <tbody>
+        <tr><td><b>div</b></td><td><span class="pill good">100.00%</span></td><td>96.75%</td><td>100.00%</td></tr>
+        <tr><td><b>add</b></td><td><span class="pill good">99.17%</span></td><td>98.92%</td><td>99.08%</td></tr>
+        <tr><td><b>sub</b></td><td><span class="pill good">98.67%</span></td><td>98.17%</td><td>98.83%</td></tr>
+        <tr><td><b>mul</b></td><td><span class="pill good">40.25%</span></td><td>41.58%</td><td>33.33%</td></tr>
+        <tr><td><b>pow</b> (in-dist)</td><td>22.17%</td><td>19.67%</td><td>21.33%</td></tr>
+        <tr><td><b>multi-op</b></td><td colspan="2">5.08%</td><td><span class="pill bad">16.25%</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">1.022B tokens in 2740s at 373,104 tok/s. SFT held-out 0.1632, best of the study.</p>
+</section>
+
+<!-- FINDINGS 31-33 -->
+<section id="find3133">
+  <span class="kicker rv">What run 17 showed</span>
+  <h2 class="rv">Three findings</h2>
+  <div class="finds">
+    <div class="find glass rv"><div class="num">31</div><div class="ico">📈</div><h3>Budget finally moved multiplication</h3><p>33.33% → <b style="color:#fff">40.25%</b>, the first time more compute has shifted mul in the whole study. The length curve extended with it: 86% at 6-digit answers, 71% at 7-digit, and it now reaches 11-digit answers at all. Doubling tokens and widening digits bought real capability on single operations.</p></div>
+    <div class="find glass rv"><div class="num">32</div><div class="ico">🪆</div><h3>Wider digits help operations and hurt composition</h3><p>Multi-op fell 16.25% → <b style="color:#fff">5.08%</b>. Re-scored against run 16's exact answer-length profile it stays at 5.08%, so it is not an eval artifact; scored per template the drop is uniform — the old <code>N*(N+N)-N</code> scores 0.0%, same as the new shapes, so the added templates are not the cause. At 1–8 digits the <i>intermediate</i> values inside a compositional expression grow, and every sub-result must be carried correctly.</p></div>
+    <div class="find glass rv"><div class="num">33</div><div class="ico">✳️</div><h3>An accidental operator-transfer experiment</h3><p><code>--mul-symbol</code> governed only single-op lines; <code>build_multi</code> hardcoded <code>*</code>. So the corpus rendered multiply four ways and <b style="color:#fff">no line ever contained both</b> <code>x</code> and <code>*</code>. On 400 identical problems: <code>x</code> 41.75%, <code>times</code> 41.75%, <code>multiplied by</code> 37.00%, <code>*</code> <b style="color:#fff">22.00%</b>. The model inferred <code>*</code> means multiply from compositional context alone — well above chance — but 20 points worse than the form it saw standalone. Generator now fixed; the reported mul figures are <code>x</code>-only.</p></div>
+  </div>
+</section>
+
 <!-- LOSS -->
 <section id="loss">
   <span class="kicker rv">Curves</span>
