@@ -78,6 +78,40 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 14: five ops (add sub mul div pow), 1–6 digits, 100 tpp + SFT
+
+| operation | run 13 (four ops) | **run 14 (five ops)** |
+|---|---|---|
+| add | 97.80% | **98.53%** |
+| sub | 95.93% | **98.40%** |
+| div | 100.00% | 99.83% |
+| mul | 42.00% | **43.53%** |
+| pow (3,229 held out) | — | **20.00%** |
+
+**Adding a fifth operation cost nothing** — add and sub improved, mul edged up, div held.
+511M tokens in 1373s at 372,196 tok/s; SFT 58s; vocab 16 → 17 (`^`).
+
+**The generator's `pow` had to be fixed first.** It was hardcoded to base 2–9 / exp 2–4 —
+**24 distinct problems in the entire space**, smaller than the 136-problem single-digit set
+that earlier runs showed gets memorized. It now samples `(base, exp)` uniformly over every
+pair whose answer fits the digit budget: **21,533 problems**, 9,998 bases, exponents 2–39,
+and the space scales with `--max-digits` like the other operations. That turned pow from a
+lookup table into a real generalization test, with 3,229 problems held out of both
+pretraining and SFT.
+
+**Pow's 20% is answer length, not exponentiation.** By answer length: 3-digit 100%,
+6-digit 73%, 7-digit 55%, 8-digit 13%, 12-digit 1%. 68% of held-out pow problems have 8+
+digit answers — the band where multiplication is already at 19%. Where answers are short,
+exponentiation works as well as any other operation.
+
+**It is learned, not memorized.** Held-out pow vs the training portion converges at 8+
+digits (13% vs 16%, 1% vs 2%, 1% vs 4%). A memorizing model would keep the training
+portion high; instead the same length-limited computation runs on both.
+
+`2^32` → `4144961696` (gold `4294967296`): right length, right leading digit, wrong
+middle — the multiplication signature — despite 84 exposures in training. `2^10`, `2^16`,
+`3^5`, `7^3` are all correct.
+
 ### Run 13: four ops, 1–6 digits, 20 tpp + SFT — best four-op model
 
 | operation | run 11 (1–9d, 20tpp) | run 12 (1–4d, 100tpp) | **run 13 (1–6d, 20tpp)** |

@@ -400,6 +400,38 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+
+<!-- RUN 14: FIVE OPS -->
+<section id="run14">
+  <span class="kicker rv">Run 14</span>
+  <h2 class="rv">Adding exponentiation</h2>
+  <p class="sub rv">Five operations at 1–6 digits, 100 tpp, then SFT. The generator's <code>pow</code> was widened from a hardcoded base 2–9 / exp 2–4 (only <b style="color:#fff">24 distinct problems</b>) to uniform sampling over every (base, exp) pair whose answer fits the digit budget — <b style="color:#fff">21,533 problems</b>, 9,998 bases, exponents 2–39. That made pow a real generalization test instead of a lookup table.</p>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Operation</th><th>Run 13 · four ops</th><th>Run 14 · five ops</th></tr></thead>
+      <tbody>
+        <tr><td><b>add</b></td><td>97.80%</td><td><span class="pill good">98.53%</span></td></tr>
+        <tr><td><b>sub</b></td><td>95.93%</td><td><span class="pill good">98.40%</span></td></tr>
+        <tr><td><b>div</b></td><td>100.00%</td><td><span class="pill good">99.83%</span></td></tr>
+        <tr><td><b>mul</b></td><td>42.00%</td><td>43.53%</td></tr>
+        <tr><td><b>pow</b> (3,229 held out)</td><td>—</td><td>20.00%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">Adding a fifth operation cost nothing — add and sub improved. 511M tokens in 1373s at 372,196 tok/s; SFT 58s.</p>
+</section>
+
+<!-- FINDINGS 24-26 -->
+<section id="find2426">
+  <span class="kicker rv">What run 14 showed</span>
+  <h2 class="rv">Three closing findings</h2>
+  <div class="finds">
+    <div class="find glass rv"><div class="num">24</div><div class="ico">📏</div><h3>Pow's 20% is answer length, not exponentiation</h3><p>Held-out pow by answer length: 3-digit <b style="color:#fff">100%</b>, 6-digit 73%, 7-digit 55%, 8-digit 13%, 12-digit 1%. 68% of held-out pow problems have 8+ digit answers — the band where multiplication is already at 19%. Where the answer is short, exponentiation works as well as anything else. Same length curve, different operation.</p></div>
+    <div class="find glass rv"><div class="num">25</div><div class="ico">🔍</div><h3>Held-out and memorized converge — so it is not a lookup</h3><p>Comparing held-out pow against the training portion: at 8+ digits they land on the <i>same</i> near-zero values (13% vs 16%, 1% vs 2%, 1% vs 4%). A memorizing model would keep the training portion high. It does not — the same length-limited computation runs on both, which is what makes this learned rather than stored.</p></div>
+    <div class="find glass rv"><div class="num">26</div><div class="ico">🎯</div><h3>2^32 fails the way multiplication fails</h3><p><code>2^32</code> → <code>4144961696</code>, gold <code>4294967296</code>: right length, right leading digit, wrong middle — the exact multiplication signature. Meanwhile <code>2^10</code>, <code>2^16</code>, <code>3^5</code>, <code>7^3</code> are all correct. Seen 84 times in training and still wrong, because the failure is carrying digits, not recall.</p></div>
+  </div>
+</section>
+
 <!-- LOSS -->
 <section id="loss">
   <span class="kicker rv">Curves</span>
