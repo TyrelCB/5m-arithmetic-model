@@ -463,6 +463,37 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+
+<!-- RUN 16: WORD FORMS -->
+<section id="run16">
+  <span class="kicker rv">Run 16</span>
+  <h2 class="rv">Words for operators</h2>
+  <p class="sub rv">50% of lines use word-form operators — <code>36 multiplied by 24 = 864</code> instead of <code>36 x 24</code> — with spaces kept so word boundaries are explicit. Vocab 20 → 40 (19 letters + space). Same operations, same digit ranges, matched SFT exposure: the only variable is how the operator is written.</p>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Operation</th><th>Symbolic</th><th>Word form</th><th>Gap</th></tr></thead>
+      <tbody>
+        <tr><td><b>div</b></td><td><span class="pill good">100.00%</span></td><td><span class="pill good">99.86%</span></td><td>0.14</td></tr>
+        <tr><td><b>add</b></td><td><span class="pill good">99.08%</span></td><td><span class="pill good">99.00%</span></td><td>0.08</td></tr>
+        <tr><td><b>sub</b></td><td><span class="pill good">98.83%</span></td><td><span class="pill good">98.83%</span></td><td><b>0.00</b></td></tr>
+        <tr><td><b>mul</b></td><td>33.33%</td><td>35.58%</td><td>−2.25</td></tr>
+        <tr><td><b>multi-op</b></td><td colspan="2">16.25%</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">Throughput 371,209 tok/s — doubling the vocabulary cost nothing measurable. SFT held-out loss 0.1905, the best of any multi-operation run.</p>
+</section>
+
+<!-- FINDINGS 29-30 -->
+<section id="find2930">
+  <span class="kicker rv">What run 16 showed</span>
+  <h2 class="rv">Encoding is free; carrying is not</h2>
+  <div class="finds">
+    <div class="find glass rv"><div class="num">29</div><div class="ico">🔤</div><h3>A 13-token phrase is as good as one symbol</h3><p>Every operation lands within ~2 points across encodings, and subtraction is <b style="color:#fff">identical to two decimals</b>. The model learned that <code>multiplied by</code> and <code>x</code> denote the same operation rather than memorising two disjoint tasks. Multiplication is slightly <i>better</i> in word form. Operator identity survives being spread across many tokens.</p></div>
+    <div class="find glass rv"><div class="num">30</div><div class="ico">🔗</div><h3>Both encodings fail identically</h3><p><code>7 ^ 3</code> → <code>327</code> and <code>7 to the power of 3</code> → <code>327</code>: the same wrong digits, from the same model, on the same problem written two ways. Shared failure is stronger evidence than shared success — parallel lookup tables would diverge. Meanwhile mul (33–36%) and multi-op (16.25%) sit exactly where they have all study, with the same by-length collapse. Encoding, composition, operation count and vocabulary size all leave the digit-carrying ceiling untouched.</p></div>
+  </div>
+</section>
+
 <!-- LOSS -->
 <section id="loss">
   <span class="kicker rv">Curves</span>

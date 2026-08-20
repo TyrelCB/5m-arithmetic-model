@@ -78,6 +78,42 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 16: word forms — `36 multiplied by 24 = 864`
+
+50% word-form operators, spaces kept, vocab 20 → 40 (19 letters + space). Same
+operations, same digit ranges, matched SFT exposure — the only variable is how the
+operator is written.
+
+| operation | symbolic | **word form** | gap |
+|---|---|---|---|
+| div | 100.00% | **99.86%** | 0.14 |
+| add | 99.08% | **99.00%** | 0.08 |
+| sub | 98.83% | **98.83%** | **0.00** |
+| mul | 33.33% | **35.58%** | −2.25 (word higher) |
+| multi-op | 16.25% | — | — |
+
+**Encoding is essentially free.** Every operation lands within ~2 points across the two
+encodings; subtraction is identical to two decimals. The model learned that `multiplied
+by` — a 13-token phrase — and `x` denote the same operation, rather than treating them as
+separate tasks.
+
+**Both encodings fail identically**, which is the stronger evidence: `7 ^ 3` → `327` and
+`7 to the power of 3` → `327`. Same wrong digits from the same model on the same problem
+written two ways. Parallel lookup tables would diverge.
+
+Best add/sub/div of the study (99.08% / 98.83% / 100.00%) while carrying five operations,
+compositional expressions, two encodings and a 40-token vocab. SFT held-out loss 0.1905,
+best of any multi-operation run. Throughput 371,209 tok/s — doubling the vocab cost
+nothing measurable.
+
+Mul (33–36%) and multi-op (16.25%) sit where they have all study, with the same by-length
+collapse (mul: 86% at 5-digit answers, 6% at 9-digit). Encoding, composition, operation
+count and vocabulary size all leave the digit-carrying ceiling untouched.
+
+*Note: dropping `--compact` reformatted every line (`73 + 5 = 78`, not `73+5=78`), so run
+16's absolute numbers are not comparable to runs 1–15. The internal symbolic-vs-word
+comparison is the controlled one.*
+
 ### Run 15: full generator surface — five ops + compositional, 1–6 digits, 100 tpp + SFT
 
 | split | run 14 | **run 15** |
