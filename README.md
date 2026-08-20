@@ -78,6 +78,42 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 15: full generator surface — five ops + compositional, 1–6 digits, 100 tpp + SFT
+
+| split | run 14 | **run 15** |
+|---|---|---|
+| div | 99.83% | **99.89%** |
+| add | 98.53% | 97.67% |
+| sub | 98.40% | 95.87% |
+| mul | 43.53% | 28.47% |
+| **multi-op** | — | **15.27%** |
+
+Adds `--multi-op 0.20`: compositional lines like `52*(46+33)-91=4017` requiring nested
+sub-expressions and operator precedence. Every earlier run was single-operation only.
+Vocab 17 → 20 (`*`, `(`, `)`).
+
+**Composition is not the barrier — digit carrying is.**
+
+| metric | multi-op |
+|---|---|
+| correct answer length | **91.2%** |
+| correct first digit | **83.0%** |
+| exact match | 15.27% |
+
+`189+(532132-432349)*6` → `588003` (gold `598887`); `429*7^3+8` → `145635` (gold `147155`).
+Right magnitude, right leading digits, wrong middle. `(818-(1463-645))*7=0` is exactly
+right including the nested subtraction. The model resolves parentheses and applies
+precedence correctly; it runs out of capacity carrying digits through long results, and
+compositional answers are long (63% are 6+ digits). The by-length curve mirrors
+multiplication.
+
+**Two comparisons in this run are unsafe.** Pow scored 0.00%, but the 38M corpus absorbed
+every short-answer pow problem, so the surviving held-out set contains **only 7–12 digit
+answers** — none of the 1–6 digit range where run 14 scored 73–100%. It measured pow only
+where every operation is near zero. The mul drop (43.53% → 28.47%) is partly the same
+effect: this eval split skews longer. Matched eval sets would be needed to claim either
+number.
+
 ### Run 14: five ops (add sub mul div pow), 1–6 digits, 100 tpp + SFT
 
 | operation | run 13 (four ops) | **run 14 (five ops)** |

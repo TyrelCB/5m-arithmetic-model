@@ -432,6 +432,37 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+
+<!-- RUN 15: COMPOSITIONAL -->
+<section id="run15">
+  <span class="kicker rv">Run 15</span>
+  <h2 class="rv">Compositional expressions</h2>
+  <p class="sub rv">The full generator surface: five operations plus <b style="color:#fff">multi-op</b> lines like <code>52*(46+33)-91</code> that need nested sub-expressions and operator precedence. Every run before this trained on single-operation problems only. Vocab 17 → 20 (<code>*</code>, <code>(</code>, <code>)</code>).</p>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Split</th><th>Run 14</th><th>Run 15</th></tr></thead>
+      <tbody>
+        <tr><td><b>div</b></td><td>99.83%</td><td><span class="pill good">99.89%</span></td></tr>
+        <tr><td><b>add</b></td><td>98.53%</td><td><span class="pill good">97.67%</span></td></tr>
+        <tr><td><b>sub</b></td><td>98.40%</td><td><span class="pill good">95.87%</span></td></tr>
+        <tr><td><b>mul</b></td><td>43.53%</td><td>28.47%</td></tr>
+        <tr><td><b>multi-op</b> (compositional)</td><td>—</td><td>15.27%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">Add, sub and div held while absorbing an entirely new structural class. The mul drop is partly eval composition — this split skews toward longer answers — so it is not a clean comparison.</p>
+</section>
+
+<!-- FINDINGS 27-28 -->
+<section id="find2728">
+  <span class="kicker rv">What run 15 showed</span>
+  <h2 class="rv">Composition is not the barrier</h2>
+  <div class="finds">
+    <div class="find glass rv"><div class="num">27</div><div class="ico">🧩</div><h3>Multi-op fails on digits, not on structure</h3><p>Compositional answers: <b style="color:#fff">91.2% correct length, 83.0% correct first digit</b>, 15.27% exact. <code>189+(532132-432349)*6</code> → <code>588003</code> (gold <code>598887</code>) — right magnitude, right leading digits, wrong middle. <code>(818-(1463-645))*7=0</code> is exactly right, nested subtraction and all. The model resolves parentheses and applies precedence correctly; it cannot carry digits through a long result. The by-length curve mirrors multiplication exactly.</p></div>
+    <div class="find glass rv"><div class="num">28</div><div class="ico">🪤</div><h3>A saturated corpus can invert a held-out set</h3><p>Run 15's pow scored 0.00% — but the 38M-line corpus had absorbed every short-answer pow problem, leaving a held-out set containing <b style="color:#fff">only 7–12 digit answers</b> and none of the 1–6 digit range where run 14 scored 73–100%. The metric measured pow exclusively in the band where every operation is near zero. Not a regression; a broken comparison.</p></div>
+  </div>
+</section>
+
 <!-- LOSS -->
 <section id="loss">
   <span class="kicker rv">Curves</span>
