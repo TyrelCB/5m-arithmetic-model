@@ -592,6 +592,37 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+
+<!-- RUN 21: REASONING SWITCH -->
+<section id="run21">
+  <span class="kicker rv">Run 21</span>
+  <h2 class="rv">A reasoning switch</h2>
+  <p class="sub rv">Three control tokens let one model do both: <code>847 * 293 = <b style="color:#fff">&lt;ans&gt;</b> 248171 &lt;end&gt;</code> answers directly, <code>847 * 293 = <b style="color:#fff">&lt;think&gt;</b> 847 * 200 = 169400 -&gt; ... &lt;ans&gt; 248171 &lt;end&gt;</code> reasons first. Vocab 42 → 45.</p>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Balanced multiplication</th><th>Accuracy</th></tr></thead>
+      <tbody>
+        <tr><td>run 19, no trace available</td><td><span class="pill bad">0.00%</span></td></tr>
+        <tr><td>run 21, <code>&lt;ans&gt;</code> — answer directly</td><td><span class="pill bad">1.20%</span></td></tr>
+        <tr><td>run 21, <code>&lt;think&gt;</code> — reason first</td><td><span class="pill good">62.00%</span></td></tr>
+        <tr><td>chain exact-match (~90 tokens)</td><td><span class="pill good">99.20%</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">Same weights, same problems — a <b style="color:#fff">52×</b> difference from one control token. Direct mode is preserved: div 100.00%, add 86.60%.</p>
+</section>
+
+<!-- FINDINGS 39-41 -->
+<section id="find3941">
+  <span class="kicker rv">What run 21 showed</span>
+  <h2 class="rv">Three findings</h2>
+  <div class="finds">
+    <div class="find glass rv"><div class="num">39</div><div class="ico">🎚️</div><h3>The SFT masking was the real culprit</h3><p>Run 20's traces died under SFT (30.83% → 0.00%) and the cause was mechanical, not conceptual: <code>load_sft</code> split the prompt on the <i>last</i> <code>=</code>, so a trace's entire chain sat inside the prompt and only the final number was supervised — SFT was training the model to skip its own reasoning. Supervising from the first control token onward covers 32 of 44 tokens instead of ~6.</p></div>
+    <div class="find glass rv"><div class="num">40</div><div class="ico">➕</div><h3>The residual failure is the final sum, not the decomposition</h3><p>On traced problems the model gets <b style="color:#fff">99.0%</b> of partial products right but only <b style="color:#fff">60.0%</b> of the closing addition — and final-answer accuracy (59.7%) tracks the sum, not the products. <code>6014 * 66</code> yields <code>360840</code> and <code>36084</code> correctly, states the sum, then writes <code>496924</code> for <code>396924</code>. Decomposition solved the multiplication; a long multi-term addition is now the bottleneck.</p></div>
+    <div class="find glass rv"><div class="num">41</div><div class="ico">🚦</div><h3>&lt;think&gt; is routing, not free capability</h3><p>Asking for a chain where none applies is actively harmful: add falls <b style="color:#fff">86.60% → 0.40%</b> and div <b style="color:#fff">100% → 0.80%</b> under <code>&lt;think&gt;</code>, because those operations have no trace format in training and the model emits something malformed. The switch decides <i>when</i> to reason; it does not make reasoning universally better.</p></div>
+  </div>
+</section>
+
 <!-- LOSS -->
 <section id="loss">
   <span class="kicker rv">Curves</span>

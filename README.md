@@ -78,6 +78,44 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 21: a reasoning switch — `<think>` / `<ans>` / `<end>`
+
+Three control tokens let one model answer directly or reason first, selected by which
+token the prompt ends with. Vocab 42 → 45.
+
+```
+direct  9853 * 6 = <ans> 59118 <end>
+traced  6864 * 87 = <think> 6864 * 80 = 549120 -> 6864 * 7 = 48048
+                          -> 549120 + 48048 <ans> 597168 <end>
+```
+
+**On balanced multiplication — the operation run 19 measured at 0.00%:**
+
+| mode | accuracy |
+|---|---|
+| `<ans>` — answer directly | 1.20% |
+| `<think>` — reason first | **62.00%** |
+| chain exact-match (~90 tokens) | **99.20%** |
+
+Same weights, same problems: a **52× difference from one control token**. Direct mode is
+preserved (div 100.00%, add 86.60%), so unlike run 20 there is no trade between reasoning
+and answering.
+
+**Run 20's trace collapse had a mechanical cause.** `load_sft` split the prompt on the
+*last* `=`, so a trace's whole chain sat inside the prompt and only the final number was
+supervised — SFT was training the model to skip its own reasoning. Supervising from the
+first control token covers 32 of 44 tokens instead of ~6.
+
+**The residual failure moved.** On traced problems the model gets **99.0%** of partial
+products right but only **60.0%** of the closing addition, and final accuracy (59.7%)
+tracks the sum rather than the products. `6014 * 66` produces `360840` and `36084`
+correctly, then writes `496924` for `396924`. Decomposition solved the multiplication; a
+long multi-term addition is the new bottleneck.
+
+**`<think>` is routing, not free capability.** Requesting a chain where none applies is
+harmful: add falls 86.60% → 0.40%, div 100% → 0.80%, because those operations have no
+trace format in training. Use `<think>` only where decomposition applies.
+
 ### Run 19: 1–16 digits, 200 tpp — balance, not answer length
 
 At `max_d=16` the mul answer cap (18) is loose enough that **balanced products up to 9×9**
