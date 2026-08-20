@@ -560,6 +560,38 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+
+<!-- RUN 19: BALANCE -->
+<section id="run19">
+  <span class="kicker rv">Run 19</span>
+  <h2 class="rv">It is not answer length — it is balance</h2>
+  <p class="sub rv">1–16 digits at 200 tpp. At <code>max_d=16</code> the answer cap (18) is loose enough that <b style="color:#fff">balanced products up to 9×9</b> finally appear — every earlier corpus topped out at 4×4 or 5×5. Stratifying multiplication by <i>balance</i> (the width of the shorter operand) separates two things every previous number conflated.</p>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Answer length</th><th>balance 1–2 (one short operand)</th><th>balance 3–4 (both wide)</th></tr></thead>
+      <tbody>
+        <tr><td>7 digits</td><td><span class="pill good">71.1%</span></td><td><span class="pill bad">4.8%</span></td></tr>
+        <tr><td>8 digits</td><td><span class="pill good">60.7%</span></td><td><span class="pill bad">0.0%</span></td></tr>
+        <tr><td>9 digits</td><td><span class="pill good">60.0%</span></td><td><span class="pill bad">3.0%</span></td></tr>
+        <tr><td>11 digits</td><td><span class="pill good">58.3%</span></td><td><span class="pill bad">0.0%</span></td></tr>
+        <tr><td>12 digits</td><td><span class="pill good">84.2%</span></td><td><span class="pill bad">0.0%</span></td></tr>
+        <tr><td>14 digits</td><td>34.6%</td><td><span class="pill bad">0.0%</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">Aggregate by balance: 1–2 → <b style="color:#fff">47.59%</b>, 3–4 → 0.63%, 5–6 → 0.00%, 7+ → 0.00%. The cliff is at <b style="color:#fff">3 digits on the shorter operand</b>.</p>
+</section>
+
+<!-- FINDINGS 37-38 -->
+<section id="find3738">
+  <span class="kicker rv">The central correction</span>
+  <h2 class="rv">Two constraints, not one</h2>
+  <div class="finds">
+    <div class="find glass rv"><div class="num">37</div><div class="ico">⚖️</div><h3>Balance binds before length does</h3><p>At <b>identical answer lengths</b>, lopsided multiplication works and balanced multiplication does not: a 12-digit answer scores <b style="color:#fff">84.2%</b> when one operand is 1–2 digits and <b style="color:#fff">0.0%</b> when both are 3+. Same output size, same model, same corpus. <code>84729 * 7</code> is one pass with a single carry chain; <code>847 * 293</code> needs three partial products held and summed with alignment. The model does the first and cannot do the second at all.</p></div>
+    <div class="find glass rv"><div class="num">38</div><div class="ico">🔁</div><h3>Earlier mul numbers tracked corpus composition</h3><p>This reframes every multiplication figure in the study. Run 18 scored 52.00% against run 17's 40.25% — but run 18's 1–6 digit corpus <i>cannot produce anything past 4×4</i>, so its eval was dominated by lopsided pairs. The metric moved because the corpus changed shape, not because the model improved. Reported mul accuracy is only meaningful alongside the balance distribution of its eval set.</p></div>
+  </div>
+</section>
+
 <!-- LOSS -->
 <section id="loss">
   <span class="kicker rv">Curves</span>

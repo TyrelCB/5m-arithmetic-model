@@ -78,6 +78,40 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 19: 1–16 digits, 200 tpp — balance, not answer length
+
+At `max_d=16` the mul answer cap (18) is loose enough that **balanced products up to 9×9**
+appear for the first time. Stratifying multiplication by *balance* (width of the shorter
+operand) separates what every earlier number conflated.
+
+**At identical answer lengths, lopsided multiplication works and balanced does not:**
+
+| answer length | balance 1–2 | balance 3–4 |
+|---|---|---|
+| 7 digits | **71.1%** | 4.8% |
+| 8 digits | **60.7%** | 0.0% |
+| 9 digits | **60.0%** | 3.0% |
+| 11 digits | **58.3%** | 0.0% |
+| 12 digits | **84.2%** | 0.0% |
+| 14 digits | 34.6% | 0.0% |
+
+Aggregate by balance: 1–2 → **47.59%**, 3–4 → 0.63%, 5–6 → **0.00%**, 7+ → **0.00%**.
+The cliff is at **3 digits on the shorter operand**.
+
+`84729 * 7` is a single pass — multiply each digit, propagate one carry. `847 * 293`
+requires holding three partial products and summing them with alignment: more working
+state, independent of output size. The model does the first and cannot do the second.
+
+**This corrects the study's central claim.** Earlier runs reported a single answer-length
+ceiling. There are two constraints: answer length caps everything (nothing survives past
+~14 digits even lopsided), but **balance is the binding constraint for multiplication**,
+and it binds at 3 digits.
+
+**It also reframes every earlier mul figure.** Run 18's 52.00% vs run 17's 40.25% was not
+the model improving — run 18's 1–6 digit corpus cannot produce anything past 4×4, so its
+eval was dominated by lopsided pairs. Reported mul accuracy is only meaningful alongside
+the balance distribution of its eval set.
+
 ### Run 18: `*` throughout, 1–6 digits, 100 tpp
 
 | operation | symbolic | word form |
