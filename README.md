@@ -78,6 +78,60 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 18: `*` throughout, 1–6 digits, 100 tpp
+
+| operation | symbolic | word form |
+|---|---|---|
+| div | 99.79% | 99.79% |
+| add | 98.83% | 98.25% |
+| sub | 98.67% | 98.42% |
+| **mul (`*`)** | **52.00%** | 53.00% |
+| pow *(in-dist)* | 6.83% | 4.58% |
+| multi-op | 11.92% | — |
+
+**Operator consistency is worth ~30 points.** The same symbol scored 22.00% in run 17 —
+where `build_multi` hardcoded `*` so it appeared *only* inside compositional expressions —
+and **52.00%** here, where it also appears as a standalone binary operator. Same model,
+budget and digit range. A rendering inconsistency invisible in corpus statistics cost more
+than any architecture or curriculum change tried in this study.
+
+**But the aggregate overstates it.** Matched by answer length, run 18 is *worse* than run
+17 at every width (5d: 86.6% vs 100%, 7d: 46.2% vs 71%, 8d: 20.6% vs 43%). Run 17's eval
+reached 10-digit answers; run 18's stops at 8. Narrower digits shifted the eval toward
+easier problems. Run 17's 1–8 digit corpus at 200 tpp still yields the better multiplier.
+
+### Two corrections
+
+**Balanced wide multiplication was never generated, in any run.** `build_single` caps mul
+answers at `max_d + 2` and on overflow replaces *both* operands with `randint(1,9)`. A d×d
+product has ~2d digits, so the cap binds once d > 2:
+
+| operand width | lines produced | fallback |
+|---|---|---|
+| 3×3 | 5,000 | 1.6% |
+| **4×4** | **81** | **100%** |
+| 8×8 | 81 | 100% |
+
+At 4×4 and beyond the generator emits only the 81 distinct single-digit products, then
+aborts on `max_tries`. Every mul figure in this study reflects *lopsided* operands (5×1,
+6×2) that slip under the cap. Wide multiplication needs a generator change, not a flag.
+
+**Division does not generalize past its training range.** It appeared to (62.62% at
+"9–12 digits" where add/sub scored 0.00%), but the eval was bucketed by *dividend* width
+while `a = q·d` emits dividends across the whole range — 43% of that set had quotients of
+≤8 digits. Scored by **quotient** length:
+
+| quotient | accuracy |
+|---|---|
+| 1–8 digits | 100% |
+| 9 digits | 13.2% |
+| 10 digits | 1.2% |
+| 11–12 digits | 0.0% |
+
+All four operations collapse at the same answer-length boundary. Division's near-perfect
+scores throughout this study are real but measure *short-answer* arithmetic — the
+generator's backward construction keeps quotients short relative to dividends.
+
 ### Run 17: 1–8 digits, 200 tpp, 9 multi-op templates
 
 | operation | symbolic | word form | run 16 |

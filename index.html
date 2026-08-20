@@ -527,6 +527,39 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+
+<!-- RUN 18 + BENCHMARK -->
+<section id="run18">
+  <span class="kicker rv">Run 18</span>
+  <h2 class="rv">One symbol, consistently</h2>
+  <p class="sub rv">Run 17 exposed that <code>--mul-symbol</code> governed only single-op lines while <code>build_multi</code> hardcoded <code>*</code> — so multiply appeared four ways and no line ever contained both <code>x</code> and <code>*</code>. Generator fixed; run 18 uses <code>*</code> throughout at 1–6 digits, 100 tpp.</p>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Operation</th><th>Symbolic</th><th>Word form</th></tr></thead>
+      <tbody>
+        <tr><td><b>div</b></td><td><span class="pill good">99.79%</span></td><td><span class="pill good">99.79%</span></td></tr>
+        <tr><td><b>add</b></td><td><span class="pill good">98.83%</span></td><td>98.25%</td></tr>
+        <tr><td><b>sub</b></td><td><span class="pill good">98.67%</span></td><td>98.42%</td></tr>
+        <tr><td><b>mul</b> (<code>*</code>)</td><td><span class="pill good">52.00%</span></td><td>53.00%</td></tr>
+        <tr><td><b>pow</b> (in-dist)</td><td>6.83%</td><td>4.58%</td></tr>
+        <tr><td><b>multi-op</b></td><td colspan="2">11.92%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px"><code>*</code> went 22.00% → <b style="color:#fff">52.00%</b> once the symbol carried one meaning. But matched by answer length run 18 is <i>worse</i> than run 17 at every width (7-digit: 46.2% vs 71%) — the aggregate gain is eval composition, since run 17's eval reached 10-digit answers and run 18's stops at 8.</p>
+</section>
+
+<!-- FINDINGS 34-36 -->
+<section id="find3436">
+  <span class="kicker rv">Corrections</span>
+  <h2 class="rv">Two claims that did not survive checking</h2>
+  <div class="finds">
+    <div class="find glass rv"><div class="num">34</div><div class="ico">🔣</div><h3>Operator consistency is worth 30 points</h3><p>The same symbol scored <b style="color:#fff">22.00%</b> when it appeared only inside compositional expressions and <b style="color:#fff">52.00%</b> when it also appeared as a standalone binary operator. Same model size, same budget, same digit range. A rendering inconsistency invisible in the corpus statistics cost more than any architecture or curriculum change tried in this study.</p></div>
+    <div class="find glass rv"><div class="num">35</div><div class="ico">✂️</div><h3>Balanced wide multiplication was never generated</h3><p><code>build_single</code> caps mul answers at <code>max_d + 2</code> and on overflow replaces <b>both</b> operands with <code>randint(1,9)</code>. A d×d product has ~2d digits, so the cap binds once d &gt; 2: at 4×4 digits the generator emits <b style="color:#fff">81 lines total</b> — the 81 distinct single-digit products — then aborts. Every mul figure in this study reflects <i>lopsided</i> operands (5×1, 6×2) that slip under the cap.</p></div>
+    <div class="find glass rv"><div class="num">36</div><div class="ico">🧮</div><h3>Division does not generalize — the bucketing was wrong</h3><p>Division appeared to survive out-of-range at 62.62% where add/sub scored 0.00%. It was an artifact: the eval was bucketed by <i>dividend</i> width, but <code>a = q·d</code> emits dividends across the whole range, so 43% of that set had quotients of ≤8 digits. Scored by <b>quotient</b> length: 1–8 digits <b style="color:#fff">100%</b>, 9 digits 13.2%, 10 digits 1.2%, 11–12 digits <b style="color:#fff">0.0%</b>. All four operations collapse at the same answer-length boundary — a cleaner result than the exception first reported.</p></div>
+  </div>
+</section>
+
 <!-- LOSS -->
 <section id="loss">
   <span class="kicker rv">Curves</span>
