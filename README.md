@@ -112,9 +112,21 @@ product has ~2d digits, so the cap binds once d > 2:
 | **4×4** | **81** | **100%** |
 | 8×8 | 81 | 100% |
 
-At 4×4 and beyond the generator emits only the 81 distinct single-digit products, then
-aborts on `max_tries`. Every mul figure in this study reflects *lopsided* operands (5×1,
-6×2) that slip under the cap. Wide multiplication needs a generator change, not a flag.
+That table forces `min_d = max_d`. In a normal 1–N corpus the cap instead limits how
+*balanced* a product can be: a d×d product needs ~2d digits against a cap of `max_d + 2`,
+so **the widest balanced product is about `max_d/2 + 1`**.
+
+| corpus | cap | `5*5` present? | widest balanced |
+|---|---|---|---|
+| 1–4 digits | 6 | no | 3×3 |
+| 1–6 digits | 8 | no | 4×4 |
+| 1–8 digits | 10 | **yes** | 5×5 |
+| 1–16 digits | 18 | yes | 9×9 |
+
+So runs 13/16/18 (1–6 digits) topped out at 4×4 despite containing 6-digit operands —
+their wide products are all lopsided (6×2, 5×1). Run 17 (1–8) did include balanced 5×5.
+Reaching genuinely wide balanced products requires raising `max_d` well past the operand
+width you care about, or changing the cap.
 
 **Division does not generalize past its training range.** It appeared to (62.62% at
 "9–12 digits" where add/sub scored 0.00%), but the eval was bucketed by *dividend* width
