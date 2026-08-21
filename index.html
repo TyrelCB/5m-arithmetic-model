@@ -825,6 +825,66 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+<!-- RUN 27: ATTENTION HEADS -->
+<section id="run27">
+  <span class="kicker rv">Run 27</span>
+  <h2 class="rv">The default nobody tuned</h2>
+  <p class="sub rv">Every run from 1 to 26 held <code>head_dim = 32</code>, scaling head count with width. That constant kept the scaling series clean &mdash; and locked in a suboptimal choice. Head count is <b style="color:#fff">parameter-free</b> (attention is always <code>4&middot;d&sup2;</code>), so this sweep changes accuracy at fixed size.</p>
+
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>head_dim</th><th>heads</th><th>eval</th><th>SFT held-out</th><th>add</th><th>sub</th><th>div</th><th>tr_carry</th><th>tr_reduce</th></tr></thead>
+      <tbody>
+        <tr><td>32</td><td>2</td><td>0.7262</td><td>0.3657</td><td>45.25%</td><td>53.75%</td><td>82.25%</td><td>48.00%</td><td>98.25%</td></tr>
+        <tr><td><b>16</b></td><td><b>4</b></td><td><span class="pill good">0.7062</span></td><td><span class="pill good">0.3485</span></td><td><span class="pill good">65.00%</span></td><td><span class="pill good">78.50%</span></td><td>99.25%</td><td><span class="pill good">66.00%</span></td><td>98.00%</td></tr>
+        <tr><td>8</td><td>8</td><td>0.7259</td><td>0.3546</td><td>61.25%</td><td><span class="pill bad">40.00%</span></td><td>100.00%</td><td>53.33%</td><td><span class="pill bad">25.60%</span></td></tr>
+        <tr><td>4</td><td>16</td><td><span class="pill bad">0.7421</span></td><td><span class="pill bad">0.3683</span></td><td>56.25%</td><td>70.50%</td><td>87.75%</td><td>56.00%</td><td><span class="pill bad">34.00%</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">0.25M model, dim 64, L5, <b style="color:#fff">~270.6K params in every arm</b> (spread: 280 params). Same corpus, same schedule.</p>
+
+  <h2 class="rv" style="margin-top:34px">A U-curve, not a direction</h2>
+  <p class="sub rv"><code>head_dim=8</code> lands back at the <code>head_dim=32</code> baseline; <code>head_dim=4</code> is worse than where we started. RoPE frequency pairs halve with head_dim &mdash; 16, 8, 4, then 2 &mdash; so two forces trade off: more heads give more positional-routing subspaces, fewer dimensions per head give coarser positional resolution. They cross at 16.</p>
+  <p class="sub rv"><code>tr_reduce</code> is the tell: ~98% at head_dim 32 and 16, then <b style="color:#ff5fa2">collapses to 25.60% and 34.00%</b>. Reduce chains are the longest-range dependency in the suite, and they break first when frequency resolution runs out.</p>
+
+  <h2 class="rv" style="margin-top:34px">At 5M: a loss tie hiding 20 points</h2>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>5M &middot; dim 256, L6</th><th>baseline &mdash; 8 heads</th><th>run 27 &mdash; 16 heads</th><th>&Delta;</th></tr></thead>
+      <tbody>
+        <tr><td><b>eval loss</b></td><td>0.6825</td><td>0.6820</td><td>&minus;0.0005</td></tr>
+        <tr><td><b>algebra</b></td><td>44.25%</td><td><span class="pill good">64.25%</span></td><td><span class="pill good">+20.00</span></td></tr>
+        <tr><td><b>add</b></td><td>88.50%</td><td>93.50%</td><td>+5.00</td></tr>
+        <tr><td><b>tr_partial</b></td><td>60.40%</td><td>67.60%</td><td>+7.20</td></tr>
+        <tr><td>sub</td><td>95.75%</td><td>96.50%</td><td>+0.75</td></tr>
+        <tr><td>div</td><td>100.00%</td><td>100.00%</td><td>0.00</td></tr>
+        <tr><td>mul</td><td>6.00%</td><td>6.75%</td><td>+0.75</td></tr>
+        <tr><td>tr_sum / tr_reduce / tr_carry</td><td>77.20 / 58.00 / 60.67%</td><td>75.20 / 56.40 / 59.33%</td><td>&minus;2.0 / &minus;1.6 / &minus;1.3</td></tr>
+        <tr><td>throughput</td><td>373,985 tok/s</td><td>353,879 tok/s</td><td>&minus;5.4%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">The three small trace regressions sit inside the ~1.6pp SFT seed variance measured in the adjacent repo &mdash; an inherited estimate, not measured here.</p>
+
+  <div class="finds" style="margin-top:26px">
+    <div class="find glass rv"><div class="num">01</div><div class="ico">📉</div><h3>The loss said &ldquo;no effect&rdquo;</h3><p>0.6820 vs 0.6825 is a dead tie, and judging the 5M arm on loss alone would have discarded the largest algebra gain in the study. This is the canonical case for the project's own rule: <b>judge changes on accuracy, never on loss</b>.</p></div>
+    <div class="find glass rv"><div class="num">02</div><div class="ico">🔗</div><h3>Heads buy relational binding</h3><p>At 0.25M, 2&nbsp;&rarr;&nbsp;4 heads lifted a broad floor (add/sub/div/carry all +17 to +25) because 2 heads was starved. At 5M the arithmetic is already past that floor, and the extra heads move only algebra &mdash; the one task binding a variable <i>across</i> an expression rather than computing digit-locally.</p></div>
+    <div class="find glass rv"><div class="num">03</div><div class="ico">🆓</div><h3>Free at fixed parameters</h3><p>Attention is <code>4&middot;d&sup2;</code> regardless of the split, so all four arms are the same size to within 280 params. Throughput varies only 3.4% across a 4&times; head-count range. The choice is purely an accuracy decision.</p></div>
+    <div class="find glass rv"><div class="num">04</div><div class="ico">🛑</div><h3>16 is a floor, not a direction</h3><p>The obvious follow-up &mdash; keep halving &mdash; makes things worse. Two frequency pairs cannot encode 256 positions, and the longest chains break first.</p></div>
+  </div>
+
+  <h2 class="rv" style="margin-top:34px">Side quest: 108 tokens and English</h2>
+  <p class="sub rv">Run 27 also promoted <code>vocab_110.py</code> (108 tokens &mdash; full upper/lowercase, punctuation, whitespace; under 255 so the corpus cache stays uint8) and added <code>synth_word.py</code>, a dependency-free grammatical-English generator. A <b style="color:#fff">274K-parameter model at 100 tpp</b> &mdash; 815 steps, <b style="color:#fff">29 seconds</b> &mdash; reaches eval 0.7628 and emits correct subject&ndash;verb agreement, determiner&ndash;number agreement and clause structure:</p>
+  <div class="glass rv" style="padding:16px 18px;margin-top:12px">
+    <p style="margin:0 0 6px;font-family:ui-monospace,monospace;font-size:13px;color:#eef0ff">&ldquo;Some quick doctors closed these chairs quickly at that sweet mountain now, but he never sold you from&hellip;&rdquo;</p>
+    <p style="margin:0 0 6px;font-family:ui-monospace,monospace;font-size:13px;color:#eef0ff">&ldquo;He had known the moons at the villages later, so we drink badly late&hellip;&rdquo;</p>
+    <p style="margin:0;font-family:ui-monospace,monospace;font-size:13px;color:#eef0ff">&ldquo;She is drinking these angry cakes.&rdquo;</p>
+  </div>
+  <p class="sub rv" style="margin-top:12px">Orthography is not fully locked in at this budget (<code>taall</code>, <code>earlyy</code>, <code>7rass</code>). <b style="color:#fff">The English loss is not comparable to the arithmetic losses</b> &mdash; different vocab, different task.</p>
+  <p class="sub rv">Two traps on the way: the hardcoded <code>encode()</code> special-cases control tokens by literal character offset and mis-tokenizes <i>silently</i> under a new vocab (replaced with longest-match); and the generator dedups within a file but not across, leaking <b style="color:#fff">629 eval lines (3.15%)</b> from train &mdash; the same cross-file contamination this project documented for <code>gen_splits*.py</code>.</p>
+</section>
+
 <!-- NEXT -->
 <section id="next">
   <span class="kicker rv">Next runs</span>

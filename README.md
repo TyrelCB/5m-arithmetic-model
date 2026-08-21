@@ -635,6 +635,89 @@ Findings:
   `ckpt_best` on every split in both runs where both were scored, by up to 10
   points, on loss differences of 0.0005 — noise. See *Checkpoint selection*.
 
+## Run 27: the attention-head default nobody tuned
+
+Every run from 1 to 26 held `head_dim = 32`, scaling head count with model width. That
+constant kept the scaling series clean, and it also locked in an untested choice. Head
+count is **parameter-free** — attention is `4·d²` regardless of how it splits — so this
+sweep changes accuracy at fixed model size.
+
+A four-point sweep at 0.25M (dim 64, L5, ~270.6K params in *every* arm, spread 280 params):
+
+| head_dim | heads | eval | SFT held-out | add | sub | div | tr_carry | tr_reduce |
+|---|---|---|---|---|---|---|---|---|
+| 32 | 2 | 0.7262 | 0.3657 | 45.25% | 53.75% | 82.25% | 48.00% | 98.25% |
+| **16** | **4** | **0.7062** | **0.3485** | **65.00%** | **78.50%** | 99.25% | **66.00%** | 98.00% |
+| 8 | 8 | 0.7259 | 0.3546 | 61.25% | 40.00% | 100.00% | 53.33% | 25.60% |
+| 4 | 16 | 0.7421 | 0.3683 | 56.25% | 70.50% | 87.75% | 56.00% | 34.00% |
+
+**The curve is U-shaped — 16 is a floor, not a direction.** `head_dim=8` lands back at the
+`head_dim=32` baseline; `head_dim=4` is worse than the original. RoPE frequency pairs halve
+with head_dim (16, 8, 4, 2), so two forces trade off: more heads give more positional-routing
+subspaces, fewer dimensions per head give coarser positional resolution. `tr_reduce` is the
+tell — ~98% at head_dim 32 and 16, then collapses to 25.60%/34.00%. The longest-range chains
+break first when frequency resolution runs out.
+
+### At 5M, the loss ties and the accuracy does not
+
+| 5M · dim 256, L6 | baseline (8 heads) | run 27 (16 heads) | Δ |
+|---|---|---|---|
+| eval loss | 0.6825 | 0.6820 | −0.0005 |
+| **algebra** | 44.25% | **64.25%** | **+20.00** |
+| add | 88.50% | 93.50% | +5.00 |
+| tr_partial | 60.40% | 67.60% | +7.20 |
+| sub / div / mul | 95.75 / 100.00 / 6.00% | 96.50 / 100.00 / 6.75% | +0.75 / 0 / +0.75 |
+| tr_sum / tr_reduce / tr_carry | 77.20 / 58.00 / 60.67% | 75.20 / 56.40 / 59.33% | −2.0 / −1.6 / −1.3 |
+| throughput | 373,985 tok/s | 353,879 tok/s | −5.4% |
+
+**This is the clearest case in the study for judging on accuracy, not loss.** The 5M arm's
+loss difference is 0.0005 — indistinguishable. Stopping there would have discarded the
+largest algebra gain in twenty-seven runs. The three small trace regressions sit inside the
+~1.6pp SFT seed variance measured in the adjacent repo (an inherited estimate, not measured
+here).
+
+**More heads buy relational binding, not arithmetic.** At 0.25M, 2 → 4 heads lifted a broad
+capability floor — add, sub, div and carry traces all moved 17–25 points — because 2 heads
+was genuinely starved. At 5M the arithmetic is already past that floor and the same change
+moves only algebra: the one task requiring a variable bound *across* an expression rather
+than digit-local computation.
+
+Checkpoints in `checkpoints/run27_heads/`.
+
+## Run 27 side quest: 108-token vocab and an English corpus
+
+`vocab_110.py` (108 tokens — full upper/lowercase, punctuation, brackets, whitespace) was
+built during run 26 and never wired in. Run 27 promoted it to back `synth_word.py`, a
+dependency-free generator of grammatical basic-English sentences (imported from
+`~/.unsloth/studio/sandbox/__LOCALID_J6Xwkgq/`). It stays under 255 tokens so the corpus
+cache remains uint8.
+
+A **274K-parameter model at 100 tpp — 815 steps, 29 seconds** — reaches eval 0.7628 and
+produces correct subject–verb agreement, determiner–number agreement and clause structure:
+
+```
+Some quick doctors closed these chairs quickly at that sweet mountain now, but he never sold you from…
+He had known the moons at the villages later, so we drink badly late…
+She is drinking these angry cakes.
+```
+
+Orthography is not fully locked in at this budget (`taall`, `earlyy`, `7rass`) — the obvious
+thing more compute fixes. **The English loss is not comparable to the arithmetic losses**:
+different vocab (108 vs 55) and a different task.
+
+Two traps worth knowing:
+
+- **`encode()` is not vocab-portable.** The version in the older trainers special-cases
+  `<eos>`/`<think>`/`<ans>`/`<end>` by literal character offset (`i += 5`, `i += 7`), so a
+  vocab with different multi-char tokens is mis-tokenized *silently*. `bench_eng_hd16.py`
+  uses a generic longest-match loop; copy that when changing vocab.
+- **Cross-file contamination again.** `synth_word.py` dedups within a file but not across
+  files, leaking 629 eval lines (3.15%) from train — the same failure this project already
+  documents for `gen_splits*.py`. Always diff the splits.
+
+The generator's README documents `-n`/`-o` short flags that its argparse did not define;
+added on import.
+
 ## Throughput: it was 7x too slow
 
 The original `train_fast.py` ran at **~53,700 tok/s**. The same model now runs at
