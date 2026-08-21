@@ -78,6 +78,33 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 23: chain-length control — a clean negative result
+
+`<think>` now declares the step count up front: `<think> <3> 847 * 200 = ...`. Nine new
+tokens (`<1>`–`<9>`); chains are capped at 9 steps by the carry trace's 8-column limit.
+
+| required partial products | answer accuracy | declared `<n>` correct |
+|---|---|---|
+| 1 | 50.8% | **100.0%** |
+| 2 | **100.0%** | **100.0%** |
+| 3 | **27.3%** | **93.2%** |
+
+**The intervention worked and the outcome got worse.** Step-count declaration went from
+48.4% (run 22) to **93.2%** — the model reliably knows and states how many steps it needs.
+Answer accuracy at three products fell 40.7% → 27.3%.
+
+**So run 22's diagnosis was wrong.** I concluded the model dropped terms because it
+couldn't track chain length. It can: given the ability to declare a count, it declares
+correctly 93% of the time and still gets the answer wrong. Forced to commit to three
+steps, it emits three steps with wrong content instead of two steps and a wrong sum.
+
+Dropping a term was never a counting failure — it was what running out of capacity looks
+like. **Two partial products is the ceiling for this model**: 2-product problems reached
+**100.0%** (up from 97.5%), and no amount of output scaffolding moved the third.
+
+`tr_sum` held at 76.00%, `tr_carry` direct at 96.00%. SFT held-out loss 0.3116, best of
+any switch run.
+
 ### Run 22: sum and carry traces — the bottleneck is chain length
 
 | trace | direct | `<think>` | chain exact |

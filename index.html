@@ -652,6 +652,34 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+
+<!-- RUN 23: CHAIN-LENGTH CONTROL -->
+<section id="run23">
+  <span class="kicker rv">Run 23</span>
+  <h2 class="rv">Chain-length control: a clean negative</h2>
+  <p class="sub rv">Run 22 showed the model emits the right step count only 48.4% of the time at three partial products — it drops a term and returns a consistent wrong answer. So <code>&lt;think&gt;</code> now declares the count up front: <code>&lt;think&gt; &lt;3&gt; 847 * 200 = ...</code>. Nine new tokens, chains span 1–9 steps.</p>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Required partial products</th><th>Answer accuracy</th><th>Declared <code>&lt;n&gt;</code> correct</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>50.8%</td><td><span class="pill good">100.0%</span></td></tr>
+        <tr><td>2</td><td><span class="pill good">100.0%</span></td><td><span class="pill good">100.0%</span></td></tr>
+        <tr><td>3</td><td><span class="pill bad">27.3%</span></td><td><span class="pill good">93.2%</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">Step-count declaration went 48.4% → <b style="color:#fff">93.2%</b>. Answer accuracy at three products went 40.7% → <b style="color:#fff">27.3%</b>.</p>
+</section>
+
+<!-- FINDING 44 -->
+<section id="find44">
+  <span class="kicker rv">What run 23 showed</span>
+  <h2 class="rv">The symptom was not the cause</h2>
+  <div class="finds">
+    <div class="find glass rv"><div class="num">44</div><div class="ico">🎯</div><h3>Chain length was a symptom of capacity, not a control failure</h3><p>The intervention worked on its own terms — the model declares the correct step count <b style="color:#fff">93.2%</b> of the time, up from 48.4%. And the answer got <i>worse</i>. Forced to commit to three steps, it emits three steps with wrong content instead of two steps and a wrong sum. Dropping a term was never a counting problem; it was what running out of capacity looked like. Two partial products is the ceiling — 2 products reached <b style="color:#fff">100.0%</b>, and no output scaffolding moved the third.</p></div>
+  </div>
+</section>
+
 <!-- LOSS -->
 <section id="loss">
   <span class="kicker rv">Curves</span>
