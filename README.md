@@ -78,6 +78,50 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 24: 1M parameters — a scaling test
+
+A 1.07M-param model on **byte-identical corpus, schedule and vocab** as run 23. dim 256→128,
+layers 6→5, heads 8→4, ffn 768→384, with `ffn/dim = 3.0` and `head_dim = 32` held constant
+so capacity is the only variable. Same 15,600 steps and 511M tokens — 480 tokens/param
+rather than 100, so the small model is past its Chinchilla point and any gap is capacity,
+not undertraining.
+
+| | 5M (run 23) | **1M (run 24)** |
+|---|---|---|
+| params | 5,129,600 | **1,073,728** (20.9%) |
+| throughput | 373,985 tok/s | **870,251 tok/s** (2.33×) |
+| wall clock | 1367s | **587s** |
+| eval loss | 0.6831 | 0.6957 |
+| SFT held-out | 0.3116 | 0.3293 |
+
+| split | 5M | **1M** | Δ |
+|---|---|---|---|
+| **div** direct | 100.00% | **100.00%** | **0.00** |
+| tr_reduce chain fidelity | 99.75% | 99.25% | −0.50 |
+| mul direct | 6.00% | 5.50% | −0.50 |
+| tr_partial `<think>` | 57.50% | 52.25% | −5.25 |
+| tr_carry direct | 96.00% | 84.50% | −11.50 |
+| tr_sum `<think>` | 76.00% | 64.25% | −11.75 |
+| sub direct | 95.75% | 81.25% | −14.50 |
+| add direct | 88.50% | 70.00% | −18.50 |
+| algebra | 44.25% | **25.25%** | −19.00 |
+
+**Format is cheap; arithmetic is not.** The 1M model holds reasoning *structure* almost
+perfectly — `tr_reduce` chain fidelity 99.25% vs 99.75%, `tr_partial` down only 5.25 points.
+What the extra four million parameters buy is accuracy *inside* the steps: add −18.50,
+sub −14.50, algebra −19.00. Emitting a valid chain and computing correctly within it are
+separable capabilities with very different parameter costs.
+
+**Division was never using the parameters.** 100.00% at both scales, every width 4–16
+digits. The generator builds it backward (`a = q·d`, small `d`), so the quotient is a
+pattern-match, not a carry-propagating computation. Multiplication lost only 0.50 points
+because at 6% it had nothing to lose.
+
+**Practical read:** for iterating on corpus design or trace formats — where run 24 shows
+format learning is cheap — the 1M model gives the same qualitative signal in 10 minutes
+instead of 23. For final accuracy on anything requiring real computation, the 5M model is
+meaningfully better.
+
 ### Run 23: chain-length control — a clean negative result
 
 `<think>` now declares the step count up front: `<think> <3> 847 * 200 = ...`. Nine new
