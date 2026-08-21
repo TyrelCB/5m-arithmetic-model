@@ -881,6 +881,7 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
     <p style="margin:0 0 6px;font-family:ui-monospace,monospace;font-size:13px;color:#eef0ff">&ldquo;He had known the moons at the villages later, so we drink badly late&hellip;&rdquo;</p>
     <p style="margin:0;font-family:ui-monospace,monospace;font-size:13px;color:#eef0ff">&ldquo;She is drinking these angry cakes.&rdquo;</p>
   </div>
+  <p class="sub rv" style="margin-top:14px"><a href="english-eval.html" style="color:#00d4ff;text-decoration:none;font-weight:600">&rarr; Full English evaluation report</a> &mdash; three evaluators (well-formedness, next-word admissibility, minimal pairs) run against both checkpoints.</p>
   <p class="sub rv" style="margin-top:12px">Orthography is not fully locked in at this budget (<code>taall</code>, <code>earlyy</code>, <code>7rass</code>). <b style="color:#fff">The English loss is not comparable to the arithmetic losses</b> &mdash; different vocab, different task.</p>
   <p class="sub rv">Two traps on the way: the hardcoded <code>encode()</code> special-cases control tokens by literal character offset and mis-tokenizes <i>silently</i> under a new vocab (replaced with longest-match); and the generator dedups within a file but not across, leaking <b style="color:#fff">629 eval lines (3.15%)</b> from train &mdash; the same cross-file contamination this project documented for <code>gen_splits*.py</code>.</p>
 </section>
