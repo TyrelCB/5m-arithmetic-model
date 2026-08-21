@@ -623,6 +623,35 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+
+<!-- RUN 22: SUM + CARRY TRACES -->
+<section id="run22">
+  <span class="kicker rv">Run 22</span>
+  <h2 class="rv">Decomposing addition</h2>
+  <p class="sub rv">Run 21 left the closing sum as the bottleneck. Two new traces, each designed from a measurement: <b style="color:#fff">sum</b> accumulates multi-term additions pairwise (3-term sums were 1.8% at 8 digits, 2-term ~90% at any width), and <b style="color:#fff">carry</b> works one column at a time (width drives failure, 79.4% at 8 digits to 44.4% at 15 — carry-chain length does not, flat ~63%).</p>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Trace</th><th>direct</th><th><code>&lt;think&gt;</code></th><th>chain exact</th></tr></thead>
+      <tbody>
+        <tr><td><b>sum</b> (new)</td><td>13.20%</td><td><span class="pill good">76.60%</span></td><td>76.60%</td></tr>
+        <tr><td><b>carry</b> (new)</td><td><span class="pill good">99.40%</span></td><td>69.80%</td><td>77.00%</td></tr>
+        <tr><td><b>partial</b></td><td>0.60%</td><td>62.00%</td><td>81.20%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">1.022B tokens at <b style="color:#fff">383,571 tok/s</b>, the fastest run of the study.</p>
+</section>
+
+<!-- FINDINGS 42-43 -->
+<section id="find4243">
+  <span class="kicker rv">What run 22 showed</span>
+  <h2 class="rv">Two findings</h2>
+  <div class="finds">
+    <div class="find glass rv"><div class="num">42</div><div class="ico">🔢</div><h3>The bottleneck is chain length, not arithmetic</h3><p>Partial-product traces stayed at <b style="color:#fff">62.00%</b> despite the closing-sum fix. Broken out by how many partial products the problem requires: 2 products <b style="color:#fff">97.5%</b>, 3 products <b style="color:#fff">40.7%</b> — and at 3 the model emits the right number of steps only <b style="color:#fff">48.4%</b> of the time. <code>50949 * 224</code> produces the ×200 and ×20 terms, skips ×4, sums what it has, and returns a consistent but wrong answer. Per-step accuracy is 99.6% for products and 99.2% for adds: the steps it writes are right, it writes too few.</p></div>
+    <div class="find glass rv"><div class="num">43</div><div class="ico">↔️</div><h3>A trace can transfer to the direct capability</h3><p>Column-wise carry traces took <i>direct</i> wide addition to <b style="color:#fff">99.40%</b> — no <code>&lt;think&gt;</code> required. Run 21 measured the same operation at 44–80% depending on width. This is the first case in the study where training on a decomposition improved the one-shot skill rather than only the traced form, which suggests the trace taught column structure rather than a surface format.</p></div>
+  </div>
+</section>
+
 <!-- LOSS -->
 <section id="loss">
   <span class="kicker rv">Curves</span>

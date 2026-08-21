@@ -78,6 +78,42 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 22: sum and carry traces — the bottleneck is chain length
+
+| trace | direct | `<think>` | chain exact |
+|---|---|---|---|
+| **sum** (new) | 13.20% | **76.60%** | 76.60% |
+| **carry** (new) | **99.40%** | 69.80% | 77.00% |
+| partial | 0.60% | 62.00% | 81.20% |
+
+Both traces were designed from measurements, not intuition:
+
+- **sum** — 3-term additions collapse (45.5% at 6 digits, 1.8% at 8, 0% at 9) while 2-term
+  sums hold ~90% at any width, so it accumulates pairwise.
+- **carry** — 2-term addition degrades with *width* (79.4% at 8 digits → 44.4% at 15) but
+  **not** with carry-chain length (flat ~63% from 1 to 6 consecutive carries), so it emits
+  one column per step. My initial assumption that carry propagation was the problem was
+  wrong; the constraint is holding many columns at once.
+
+**Partial-product traces did not improve — 62.00%, identical to run 21.** Fixing the
+closing sum helped 2-product problems (97.5%) but exposed a second bottleneck:
+
+| required partial products | accuracy | emitted right count |
+|---|---|---|
+| 2 | **97.5%** | 100% |
+| 3 | **40.7%** | **48.4%** |
+
+**The model drops steps.** `50949 * 224` emits the ×200 and ×20 terms, skips ×4, sums what
+it has, and returns a consistent but wrong answer. Per-step accuracy is 99.6% (products)
+and 99.2% (adds) — the steps it writes are right, it writes too few. The failure is chain-
+length control, not arithmetic.
+
+**A trace transferred to the direct capability.** Column-wise carry traces took *direct*
+wide addition to **99.40%**, no `<think>` needed — run 21 measured 44–80% for the same
+operation. First case in the study where a decomposition improved the one-shot skill.
+
+Throughput 383,571 tok/s, fastest of the study.
+
 ### Run 21: a reasoning switch — `<think>` / `<ans>` / `<end>`
 
 Three control tokens let one model answer directly or reason first, selected by which
