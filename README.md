@@ -78,6 +78,43 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 26: the full scaling series — five points, one corpus
+
+Same 511M-token corpus, schedule and vocab at five parameter counts, `ffn/dim = 3.0` and
+`head_dim = 32` held constant.
+
+| | 5M | 1M | 0.5M | 0.25M | 0.1M |
+|---|---|---|---|---|---|
+| params | 5,129,600 | 1,073,728 | 485,632 | 270,784 | 110,464 |
+| throughput | 374k | 870k | 1.25M | 1.58M | **3.89M** |
+| wall clock | 1367s | 587s | 408s | 325s | **143s** |
+| eval loss | 0.6831 | 0.6957 | 0.7058 | 0.7262 | 0.7762 |
+| div | 100.00% | 100.00% | 98.25% | 82.25% | **0.25%** |
+| sub | 95.75% | 81.25% | 69.75% | 53.75% | **1.25%** |
+| add | 88.50% | 70.00% | 63.00% | 45.25% | **0.75%** |
+| tr_partial | 57.50% | 52.25% | 58.50% | **52.25%** | 19.25% |
+| tr_reduce chain | 99.75% | 99.25% | 97.75% | **98.25%** | 51.75% |
+| algebra | 44.25% | 25.25% | 2.75% | 1.50% | 1.00% |
+
+**Depth, not parameter count, is the arithmetic floor.** 0.25M and 0.1M share the same
+width (dim 64) and differ only in layers — 5 vs 2. Tripling depth at constant width took
+division from **0.25% to 82.25%** and subtraction from 1.25% to 53.75%. Two layers cannot
+represent multi-digit arithmetic. Everything at or above 0.25M degrades gracefully.
+
+**Traced work is the most robust capability measured.** `tr_partial` holds 52–58% across a
+**20× parameter range** and only breaks at 0.1M; chain fidelity is 99.75% at 5M and still
+98.25% at 0.25M. Decomposition turns an arithmetic problem into a format problem, and
+format survives capacity reduction far better than computation.
+
+**Tokenization dominates small-model runs.** Cold-loading the 511M corpus takes **292.5s**
+— 24× the 12.1s for a 50M slice, because the Python list balloons to ~1.2 GB before the
+numpy conversion. On the 0.1M model that was 68% of wall clock. `corpus_cache.py` reduces
+it to 0.0s, keyed on file mtime, SEQL and the vocab list so the seven vocab changes in this
+study cannot silently poison a run.
+
+**Practical tiers:** 1M for real iteration, **0.25M for fast iteration** (325s, meaningful
+signal on everything but algebra), 0.1M for pipeline smoke tests only.
+
 ### Run 25: 0.5M parameters — the scaling series completed
 
 A third point at 485,632 params (9.5% of run 23), same byte-identical corpus, schedule and

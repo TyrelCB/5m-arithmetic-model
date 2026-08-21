@@ -750,6 +750,41 @@ footer{padding:60px 0 40px;color:var(--dim);font-size:12px;text-align:center}
   </div>
 </section>
 
+
+<!-- RUN 26: SCALING SERIES -->
+<section id="run26">
+  <span class="kicker rv">Run 26</span>
+  <h2 class="rv">Five points, one corpus</h2>
+  <p class="sub rv">The same 511M-token corpus, schedule and vocab at five parameter counts, with <code>ffn/dim = 3.0</code> and <code>head_dim = 32</code> held constant throughout. Capacity is the only variable.</p>
+  <div class="glass rv" style="padding:10px;overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Split</th><th>5M</th><th>1M</th><th>0.5M</th><th>0.25M</th><th>0.1M</th></tr></thead>
+      <tbody>
+        <tr><td><b>throughput</b></td><td>374k</td><td>870k</td><td>1.25M</td><td>1.58M</td><td><span class="pill good">3.89M</span></td></tr>
+        <tr><td><b>wall clock</b></td><td>1367s</td><td>587s</td><td>408s</td><td>325s</td><td><span class="pill good">143s</span></td></tr>
+        <tr><td><b>div</b></td><td>100.00%</td><td>100.00%</td><td>98.25%</td><td>82.25%</td><td><span class="pill bad">0.25%</span></td></tr>
+        <tr><td><b>sub</b></td><td>95.75%</td><td>81.25%</td><td>69.75%</td><td>53.75%</td><td><span class="pill bad">1.25%</span></td></tr>
+        <tr><td><b>add</b></td><td>88.50%</td><td>70.00%</td><td>63.00%</td><td>45.25%</td><td><span class="pill bad">0.75%</span></td></tr>
+        <tr><td><b>tr_partial</b> <code>&lt;think&gt;</code></td><td>57.50%</td><td>52.25%</td><td>58.50%</td><td><span class="pill good">52.25%</span></td><td>19.25%</td></tr>
+        <tr><td><b>tr_reduce</b> chain</td><td>99.75%</td><td>99.25%</td><td>97.75%</td><td><span class="pill good">98.25%</span></td><td>51.75%</td></tr>
+        <tr><td><b>algebra</b></td><td>44.25%</td><td>25.25%</td><td>2.75%</td><td>1.50%</td><td>1.00%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub rv" style="margin-top:14px">Params 5,129,600 / 1,073,728 / 485,632 / 270,784 / 110,464.</p>
+</section>
+
+<!-- FINDINGS 49-51 -->
+<section id="find4951">
+  <span class="kicker rv">What run 26 showed</span>
+  <h2 class="rv">Three findings</h2>
+  <div class="finds">
+    <div class="find glass rv"><div class="num">49</div><div class="ico">🧱</div><h3>Depth, not parameter count, is the arithmetic floor</h3><p>0.25M and 0.1M share the same width (dim 64) and differ only in layers — 5 against 2. Tripling depth at constant width took division from <b style="color:#fff">0.25% to 82.25%</b> and subtraction from 1.25% to 53.75%. The collapse is not about parameters in the abstract: two layers cannot represent multi-digit arithmetic at any width tried. Everything at or above 0.25M degrades gracefully; below it, direct arithmetic vanishes.</p></div>
+    <div class="find glass rv"><div class="num">50</div><div class="ico">🛡️</div><h3>Traced work is the most robust capability measured</h3><p><code>tr_partial</code> holds <b style="color:#fff">52–58% across a 20× parameter range</b> — 5M down to 0.25M — and only breaks at 0.1M. Chain fidelity is similar: 99.75% at 5M, still 98.25% at 0.25M. Decomposition converts an arithmetic problem into a format problem, and format survives capacity reduction far better than computation does.</p></div>
+    <div class="find glass rv"><div class="num">51</div><div class="ico">⏱️</div><h3>Tokenization dominates small-model runs</h3><p>Cold-loading the 511M-token corpus takes <b style="color:#fff">292.5s</b> — 24× the 12.1s a 50M slice costs, because the Python list balloons to ~1.2 GB before the numpy conversion. On the 0.1M model that was 68% of total wall clock. A content-keyed <code>.npy</code> cache reduces it to 0.0s; the key covers file mtime, SEQL and the vocab list, so the seven vocab changes in this study cannot silently poison a run.</p></div>
+  </div>
+</section>
+
 <!-- LOSS -->
 <section id="loss">
   <span class="kicker rv">Curves</span>
