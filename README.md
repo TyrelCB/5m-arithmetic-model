@@ -78,6 +78,44 @@ embedding is `V × 256`). Same recipe as run 7 otherwise: 1–9 digit, 20 tpp, 2
 | div (exact only) | 60.53% | — | — |
 | **mul** | **5.20%** | 54.2% | 12.2% |
 
+### Run 25: 0.5M parameters — the scaling series completed
+
+A third point at 485,632 params (9.5% of run 23), same byte-identical corpus, schedule and
+vocab, with `ffn/dim = 3.0` and `head_dim = 32` held constant throughout.
+
+| model | params | tok/s | speedup | wall clock | eval loss |
+|---|---|---|---|---|---|
+| 5M (run 23) | 5,129,600 | 373,985 | 1.00× | 1367s | 0.6831 |
+| 1M (run 24) | 1,073,728 | 870,251 | 2.33× | 587s | 0.6957 |
+| **0.5M (run 25)** | **485,632** | **1,253,230** | **3.35×** | **408s** | 0.7058 |
+
+| split | 5M | 1M | **0.5M** | Δ vs 5M |
+|---|---|---|---|---|
+| div direct | 100.00% | 100.00% | **98.25%** | −1.75 |
+| tr_reduce chain fidelity | 99.75% | 99.25% | **97.75%** | −2.00 |
+| mul direct | 6.00% | 5.50% | 4.75% | −1.25 |
+| tr_partial `<think>` | 57.50% | 52.25% | **58.50%** | +1.00 |
+| tr_sum `<think>` | 76.00% | 64.25% | 64.25% | −11.75 |
+| tr_carry direct | 96.00% | 84.50% | 80.75% | −15.25 |
+| add direct | 88.50% | 70.00% | 63.00% | −25.50 |
+| sub direct | 95.75% | 81.25% | 69.75% | −26.00 |
+| algebra | 44.25% | 25.25% | **2.75%** | −41.50 |
+
+**Throughput returns diminish sharply below 1M.** 20.9% of parameters bought 2.33×;
+dropping to 9.5% bought only **1.44× more**. The embedding, lm_head and data movement are
+fixed costs that dominate once the body is small. The loss penalty doubled (+0.013 →
++0.025) while subtraction lost 26 points. **1M is the efficiency sweet spot.**
+
+**Capabilities have very different parameter floors.** Chain fidelity is nearly free
+(99.75 → 97.75%) and division almost so (100 → 98.25%), confirming the backward-
+construction explanation from run 24. Add and sub degrade roughly linearly. Algebra
+*collapses* — 44.25 → 25.25 → **2.75%** — hitting a hard floor between 0.5M and 1M.
+Traced multiplication is flat across the whole 10× range, which is what a format ceiling
+looks like rather than a capacity one.
+
+*Note: `tr_partial` at 0.5M scored above 1M (58.50% vs 52.25%). At n=400 that is within
+noise; read it as flat, not as a gain.*
+
 ### Run 24: 1M parameters — a scaling test
 
 A 1.07M-param model on **byte-identical corpus, schedule and vocab** as run 23. dim 256→128,
